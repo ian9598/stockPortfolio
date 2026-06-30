@@ -2,7 +2,7 @@
    STOCK PORTFOLIO P&L DASHBOARD - APPLICATION LOGIC
    ═══════════════════════════════════════════════ */
 
-(function () {
+(async function () {
   'use strict';
 
   // ─── State ───
@@ -12,7 +12,7 @@
   };
 
   let growthChart = null;
-  const STORAGE_KEY = 'stock_pnl_tracker';
+  const API_URL = 'api.php';
   const THEME_KEY = 'stock_pnl_theme';
 
   // ─── DOM References ───
@@ -163,26 +163,49 @@
     return 0;
   }
 
+  // ─── API calls ───
+  async function apiFetch(method, body = null, query = '') {
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json' }
+    };
+    if (body !== null) {
+      opts.body = JSON.stringify(body);
+    }
+    const res = await fetch(API_URL + query, opts);
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Unknown error');
+    }
+    return data;
+  }
+
   // ─── Persistence ───
-  function saveState() {
+  async function loadState() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const data = await apiFetch('GET');
+      state.capital = data.capital || 0;
+      state.entries = data.entries || [];
     } catch (e) {
-      console.warn('Failed to save state:', e);
+      console.warn('Failed to load state:', e);
+      showToast('Could not connect to server', 'error');
     }
   }
 
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        state.capital = parsed.capital || 0;
-        state.entries = parsed.entries || [];
-      }
-    } catch (e) {
-      console.warn('Failed to load state:', e);
-    }
+  async function saveCapital() {
+    await apiFetch('PUT', { capital: state.capital });
+  }
+
+  async function saveEntry(date, amount) {
+    await apiFetch('POST', { date, amount });
+  }
+
+  async function removeEntry(date, amount) {
+    await apiFetch('DELETE', { date, amount });
+  }
+
+  async function resetState() {
+    await apiFetch('DELETE', null, '?reset=1');
   }
 
   // ─── Theme ───
@@ -780,7 +803,7 @@
   }
 
   // ─── Actions ───
-  function setCapital() {
+  async function setCapital() {
     const val = parseFloat(capitalInput.value);
     if (isNaN(val) || val <= 0) {
       showToast('Please enter a valid capital amount', 'error');
@@ -788,9 +811,13 @@
     }
     state.capital = Math.round(val * 100) / 100;
     capitalInput.value = '';
-    saveState();
-    render();
-    showToast('Starting capital set to ' + formatCurrency(state.capital), 'success');
+    try {
+      await saveCapital();
+      render();
+      showToast('Starting capital set to ' + formatCurrency(state.capital), 'success');
+    } catch (e) {
+      showToast('Failed to save capital: ' + e.message, 'error');
+    }
   }
 
   function editCapital() {
@@ -801,7 +828,7 @@
     capitalInput.select();
   }
 
-  function addEntry() {
+  async function addEntry() {
     const date = entryDate.value;
     const amountRaw = entryAmount.value.trim();
 
@@ -821,30 +848,38 @@
       return;
     }
 
-    // Check for duplicate date
+    // Check for duplicate date (client-side)
     const existing = state.entries.find((e) => e.date === date);
     if (existing) {
       showToast('An entry for ' + date + ' already exists. Delete it first to replace.', 'error');
       return;
     }
 
-    state.entries.push({ date, amount: Math.round(amount * 100) / 100 });
-    saveState();
-    render();
-    hideEntryForm();
-    showToast('Entry saved for ' + date, 'success');
+    try {
+      await saveEntry(date, Math.round(amount * 100) / 100);
+      state.entries.push({ date, amount: Math.round(amount * 100) / 100 });
+      render();
+      hideEntryForm();
+      showToast('Entry saved for ' + date, 'success');
+    } catch (e) {
+      showToast('Failed to save entry: ' + e.message, 'error');
+    }
   }
 
-  function deleteEntry(date, amount) {
+  async function deleteEntry(date, amount) {
     const idx = state.entries.findIndex(
       (e) => e.date === date && Math.abs(e.amount - amount) < 0.001
     );
     if (idx === -1) return;
 
-    state.entries.splice(idx, 1);
-    saveState();
-    render();
-    showToast('Entry deleted', 'success');
+    try {
+      await removeEntry(date, amount);
+      state.entries.splice(idx, 1);
+      render();
+      showToast('Entry deleted', 'success');
+    } catch (e) {
+      showToast('Failed to delete entry: ' + e.message, 'error');
+    }
   }
 
   function showEntryForm() {
@@ -862,21 +897,25 @@
     entryAmount.value = '';
   }
 
-  function resetAllData() {
-    state.capital = 0;
-    state.entries = [];
-    saveState();
-    render();
-    confirmModal.classList.remove('active');
-    hideEntryForm();
-    showToast('All data reset', 'success');
+  async function resetAllData() {
+    try {
+      await resetState();
+      state.capital = 0;
+      state.entries = [];
+      render();
+      confirmModal.classList.remove('active');
+      hideEntryForm();
+      showToast('All data reset', 'success');
+    } catch (e) {
+      showToast('Failed to reset data: ' + e.message, 'error');
+    }
   }
 
   // ─── Event Listeners ───
   // Capital
   setCapitalBtn.addEventListener('click', setCapital);
-  capitalInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') setCapital();
+  capitalInput.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') await setCapital();
   });
   editCapitalBtn.addEventListener('click', editCapital);
 
@@ -898,8 +937,8 @@
   addEntryBtn.addEventListener('click', showEntryForm);
   cancelEntryBtn.addEventListener('click', hideEntryForm);
   saveEntryBtn.addEventListener('click', addEntry);
-  entryAmount.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') addEntry();
+  entryAmount.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') await addEntry();
   });
 
   // Reset
@@ -924,7 +963,7 @@
   });
 
   // ─── Init ───
-  loadState();
+  await loadState();
   loadTheme();
   render();
 
