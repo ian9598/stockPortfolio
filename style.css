@@ -83,6 +83,12 @@ body {
   gap: 10px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .header-icon {
   font-size: 1.5rem;
   color: var(--accent);
@@ -1185,21 +1191,35 @@ input[type="number"] {
   background: var(--text-muted);
 }
 
-/* ─── Dark Mode Fallback ─── */
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg-primary: #f4f4f9;
-    --bg-secondary: #e8e8f0;
-    --bg-card: #ffffff;
-    --bg-input: #f0f0f5;
-    --border: #d8d8e5;
-    --text-primary: #1a1a2e;
-    --text-secondary: #5a5a7a;
-    --text-muted: #8a8aaa;
-    --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  }
+/* ─── Light Mode ─── */
+html.light-mode {
+  --bg-primary: #f4f4f9;
+  --bg-secondary: #e8e8f0;
+  --bg-card: #ffffff;
+  --bg-input: #f0f0f5;
+  --border: #d8d8e5;
+  --text-primary: #1a1a2e;
+  --text-secondary: #5a5a7a;
+  --text-muted: #8a8aaa;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
 
-  .app-header {
-    background: var(--bg-primary);
-  }
+html.light-mode .app-header {
+  background: var(--bg-primary);
+}
+
+html.light-mode .modal-box {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+html.light-mode .toast {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* Smooth transition for theme switches */
+html, body, .card, .app-header, .summary-card, .stat-item,
+.calendar-week-cell, .calendar-month-block, .calendar-day-cell,
+.calendar-nav-btn, .btn-icon, .btn-secondary, .modal-box, .toast,
+.calendar-tabs, .entry-item {
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
 }

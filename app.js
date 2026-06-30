@@ -13,6 +13,7 @@
 
   let growthChart = null;
   const STORAGE_KEY = 'stock_pnl_tracker';
+  const THEME_KEY = 'stock_pnl_theme';
 
   // ─── DOM References ───
   const $ = (sel) => document.querySelector(sel);
@@ -49,6 +50,8 @@
   const entriesList      = $('#entriesList');
 
   const resetBtn         = $('#resetBtn');
+  const themeToggleBtn   = $('#themeToggleBtn');
+  const themeIcon        = $('#themeIcon');
   const confirmModal     = $('#confirmModal');
   const modalConfirmBtn  = $('#modalConfirmBtn');
   const modalCancelBtn   = $('#modalCancelBtn');
@@ -180,6 +183,45 @@
     } catch (e) {
       console.warn('Failed to load state:', e);
     }
+  }
+
+  // ─── Theme ───
+  function loadTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light') {
+      document.documentElement.classList.add('light-mode');
+      themeIcon.className = 'fas fa-sun';
+    } else {
+      // Default to dark
+      document.documentElement.classList.remove('light-mode');
+      themeIcon.className = 'fas fa-moon';
+    }
+  }
+
+  function setTheme(mode) {
+    if (mode === 'light') {
+      document.documentElement.classList.add('light-mode');
+      themeIcon.className = 'fas fa-sun';
+    } else {
+      document.documentElement.classList.remove('light-mode');
+      themeIcon.className = 'fas fa-moon';
+    }
+    localStorage.setItem(THEME_KEY, mode);
+    // Re-render chart so it picks up new CSS variable values
+    if (state.capital > 0) {
+      const stats = calcStats(state.entries, state.capital);
+      renderChart(stats.balanceHistory);
+    }
+  }
+
+  function toggleTheme() {
+    const isLight = document.documentElement.classList.contains('light-mode');
+    setTheme(isLight ? 'dark' : 'light');
+  }
+
+  // ─── CSS variable helper for chart ───
+  function getCSSVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
 
   // ─── Render ───
@@ -684,7 +726,7 @@
           pointRadius: 4,
           pointHoverRadius: 7,
           pointBackgroundColor: '#6c63ff',
-          pointBorderColor: '#22223a',
+          pointBorderColor: getCSSVar('--bg-card') || '#22223a',
           pointBorderWidth: 2,
           borderWidth: 2.5,
         }]
@@ -695,10 +737,10 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#1a1a2e',
-            titleColor: '#f0f0f5',
-            bodyColor: '#f0f0f5',
-            borderColor: '#3a3a5c',
+            backgroundColor: getCSSVar('--bg-card') || '#1a1a2e',
+            titleColor: getCSSVar('--text-primary') || '#f0f0f5',
+            bodyColor: getCSSVar('--text-primary') || '#f0f0f5',
+            borderColor: getCSSVar('--border') || '#3a3a5c',
             borderWidth: 1,
             padding: 12,
             cornerRadius: 8,
@@ -711,7 +753,7 @@
           x: {
             grid: { display: false, drawBorder: false },
             ticks: {
-              color: '#6c6c8a',
+              color: getCSSVar('--text-muted') || '#6c6c8a',
               font: { size: 10, family: 'Inter' },
               maxTicksLimit: 10,
               maxRotation: 0
@@ -719,11 +761,11 @@
           },
           y: {
             grid: {
-              color: 'rgba(255,255,255,0.05)',
+              color: getCSSVar('--border') || 'rgba(255,255,255,0.05)',
               drawBorder: false
             },
             ticks: {
-              color: '#6c6c8a',
+              color: getCSSVar('--text-muted') || '#6c6c8a',
               font: { size: 10, family: 'Inter' },
               callback: (val) => 'RM' + val.toLocaleString()
             }
@@ -849,6 +891,9 @@
   document.getElementById('calPrevBtn').addEventListener('click', calendarNavigatePrev);
   document.getElementById('calNextBtn').addEventListener('click', calendarNavigateNext);
 
+  // Theme Toggle
+  themeToggleBtn.addEventListener('click', toggleTheme);
+
   // Entries
   addEntryBtn.addEventListener('click', showEntryForm);
   cancelEntryBtn.addEventListener('click', hideEntryForm);
@@ -880,6 +925,7 @@
 
   // ─── Init ───
   loadState();
+  loadTheme();
   render();
 
   // If capital is set, pre-fill date for faster entry
