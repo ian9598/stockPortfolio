@@ -12,7 +12,7 @@
   };
 
   let growthChart = null;
-  const API_URL = 'api.php';
+  const API_URL = '/api';
   const THEME_KEY = 'stock_pnl_theme';
 
   // ─── DOM References ───
