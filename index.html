@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Stock Portfolio P&L Dashboard</title>
+  <meta name="description" content="Track your stock portfolio daily profit & loss and see percentage changes">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- ═══════ HEADER ═══════ -->
+    <header class="app-header">
+      <div class="header-left">
+        <i class="fas fa-chart-line header-icon"></i>
+        <h1>P&L Tracker</h1>
+      </div>
+      <button class="btn-icon" id="resetBtn" title="Reset all data">
+        <i class="fas fa-rotate-left"></i>
+      </button>
+    </header>
+
+    <!-- ═══════ CAPITAL SETUP ═══════ -->
+    <section class="card capital-card" id="capitalSection">
+      <div class="card-header">
+        <i class="fas fa-coins"></i>
+        <h2>Starting Capital</h2>
+      </div>
+      <div class="capital-form" id="capitalForm">
+        <div class="input-group capital-input-group">
+          <span class="input-prefix">RM</span>
+          <input type="number" id="capitalInput" placeholder="10,000" min="0" step="100" autocomplete="off">
+        </div>
+        <button class="btn-primary" id="setCapitalBtn">Set Capital</button>
+      </div>
+      <div class="capital-display" id="capitalDisplay" style="display:none;">
+        <div class="capital-value">
+          <span class="label">Starting Capital</span>
+          <span class="value" id="displayCapital">RM0</span>
+        </div>
+        <button class="btn-text" id="editCapitalBtn"><i class="fas fa-pen"></i> Edit</button>
+      </div>
+    </section>
+
+    <!-- ═══════ DASHBOARD ═══════ -->
+    <section class="dashboard" id="dashboardSection" style="display:none;">
+
+      <!-- Summary Cards -->
+      <div class="summary-grid">
+        <div class="summary-card current-balance">
+          <div class="summary-label">Current Balance</div>
+          <div class="summary-value" id="currentBalance">RM0</div>
+        </div>
+        <div class="summary-card total-pnl">
+          <div class="summary-label">Total P&L</div>
+          <div class="summary-value" id="totalPnL">RM0</div>
+          <div class="summary-pct" id="totalPct">0.00%</div>
+        </div>
+        <div class="summary-card best-day">
+          <div class="summary-label">Best Day</div>
+          <div class="summary-value" id="bestDay">RM0</div>
+        </div>
+        <div class="summary-card worst-day">
+          <div class="summary-label">Worst Day</div>
+          <div class="summary-value" id="worstDay">RM0</div>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="card chart-card">
+        <div class="card-header">
+          <i class="fas fa-area-chart"></i>
+          <h2>Portfolio Growth</h2>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="growthChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="card stats-card">
+        <div class="card-header">
+          <i class="fas fa-calculator"></i>
+          <h2>Statistics</h2>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Trading Days</span>
+            <span class="stat-value" id="tradingDays">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Win Rate</span>
+            <span class="stat-value" id="winRate">0%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Avg Daily Return</span>
+            <span class="stat-value" id="avgReturn">0%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Best Day</span>
+            <span class="stat-value" id="bestDayPct">0%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Worst Day</span>
+            <span class="stat-value" id="worstDayPct">0%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Total Return</span>
+            <span class="stat-value" id="totalReturn">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar View -->
+      <div class="card calendar-card">
+        <div class="card-header">
+          <i class="fas fa-calendar-alt"></i>
+          <h2>Calendar View</h2>
+        </div>
+        <div class="calendar-tabs">
+          <button class="calendar-tab active" data-view="weekly">Weekly</button>
+          <button class="calendar-tab" data-view="monthly">Monthly</button>
+          <button class="calendar-tab" data-view="annual">Annual</button>
+        </div>
+        <div class="calendar-nav" id="calendarNav">
+          <button class="calendar-nav-btn" id="calPrevBtn" aria-label="Previous">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span class="calendar-nav-title" id="calNavTitle">—</span>
+          <button class="calendar-nav-btn" id="calNextBtn" aria-label="Next">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        <div class="calendar-container" id="calendarContainer">
+          <div class="entries-empty">
+            <i class="fas fa-calendar"></i>
+            <p>Add P&L entries to see your calendar breakdown.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Entries -->
+      <div class="card entries-card">
+        <div class="card-header">
+          <i class="fas fa-list"></i>
+          <h2>Daily P&L Entries</h2>
+          <button class="btn-icon" id="addEntryBtn" title="Add entry">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+
+        <!-- Add Entry Form -->
+        <div class="entry-form" id="entryForm" style="display:none;">
+          <div class="form-row">
+            <div class="input-group">
+              <label for="entryDate">Date</label>
+              <input type="date" id="entryDate">
+            </div>
+            <div class="input-group">
+              <label for="entryAmount">P&L (RM)</label>
+              <input type="number" id="entryAmount" placeholder="+500 or -200" step="0.01">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-secondary" id="cancelEntryBtn">Cancel</button>
+            <button class="btn-primary" id="saveEntryBtn">
+              <i class="fas fa-check"></i> Save
+            </button>
+          </div>
+        </div>
+
+        <!-- Entries List -->
+        <div class="entries-list" id="entriesList">
+          <div class="entries-empty">
+            <i class="fas fa-inbox"></i>
+            <p>No entries yet. Tap + to add your first P&L entry.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════ FOOTER ═══════ -->
+    <footer class="app-footer">
+      <p>Stock Portfolio P&L Tracker &mdash; Data saved locally</p>
+    </footer>
+
+  </div>
+
+  <!-- ═══════ MODAL ═══════ -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h3>Reset All Data?</h3>
+      </div>
+      <p>This will delete your starting capital and all P&L entries. This cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="modalCancelBtn">Cancel</button>
+        <button class="btn-danger" id="modalConfirmBtn">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ TOAST ═══════ -->
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
